@@ -11,6 +11,12 @@ struct FileController: RouteCollection {
         files.delete(":fileID", use: self.deleteFile)
     }
     
+    private func getBaseURL() -> String {
+        let scheme = Environment.get("API_SCHEME") ?? "http"
+        let domain = Environment.get("API_DOMAIN") ?? "localhost:8080"
+        return "\(scheme)://\(domain)"
+    }
+    
     @Sendable
     func getFile(req: Request) async throws -> Response {
         guard let fileID = req.parameters.get("fileID"),
@@ -20,6 +26,12 @@ struct FileController: RouteCollection {
         
         guard let file = try await FileModel.find(uuid, on: req.db) else {
             throw Abort(.notFound, reason: "File not found")
+        }
+        
+        // Проверяем разрешенные типы файлов
+        let allowedTypes = Environment.get("ALLOWED_FILE_TYPES")?.split(separator: ",").map(String.init) ?? ["image/jpeg", "image/png", "image/gif", "image/webp"]
+        guard allowedTypes.contains(file.mimeType) else {
+            throw Abort(.forbidden, reason: "File type not allowed")
         }
         
         // Создаем Response с данными файла
@@ -36,7 +48,6 @@ struct FileController: RouteCollection {
             response.headers.contentType = .binary
         }
         
-        // Убираем дублирующий Content-Length - Vapor добавит автоматически
         response.headers.add(name: .contentDisposition, value: "inline; filename=\"\(file.originalName)\"")
         
         return response
@@ -51,17 +62,20 @@ struct FileController: RouteCollection {
             throw Abort(.badRequest, reason: "No file field found in request")
         }
         
-        // Валидируем размер файла (максимум 20MB для изображений)
-        guard file.data.readableBytes <= 20 * 1024 * 1024 else {
-            throw Abort(.payloadTooLarge, reason: "File too large. Maximum size is 20MB")
+        // Валидируем размер файла
+        let maxFileSize = Environment.get("MAX_FILE_SIZE").flatMap(Int.init) ?? 52428800 // 50MB
+        guard file.data.readableBytes <= maxFileSize else {
+            let maxSizeMB = maxFileSize / 1024 / 1024
+            throw Abort(.payloadTooLarge, reason: "File too large. Maximum size is \(maxSizeMB)MB")
         }
         
         // Определяем MIME тип
         let mimeType = file.contentType?.description ?? "application/octet-stream"
         
-        // Валидируем тип файла (только изображения)
-        guard mimeType.hasPrefix("image/") else {
-            throw Abort(.badRequest, reason: "Only image files are allowed")
+        // Проверяем разрешенные типы файлов
+        let allowedTypes = Environment.get("ALLOWED_FILE_TYPES")?.split(separator: ",").map(String.init) ?? ["image/jpeg", "image/png", "image/gif", "image/webp"]
+        guard allowedTypes.contains(mimeType) else {
+            throw Abort(.badRequest, reason: "File type not allowed. Allowed types: \(allowedTypes.joined(separator: ", "))")
         }
         
         // Генерируем уникальное имя файла
@@ -83,18 +97,25 @@ struct FileController: RouteCollection {
         // Сохраняем в базу данных
         try await fileModel.save(on: req.db)
         
+        let baseURL = getBaseURL()
+        
         return FileUploadResponse(
             id: fileModel.id!,
             filename: fileModel.filename,
             originalName: fileModel.originalName,
             size: fileModel.size,
-            url: "/api/v1/files/\(fileModel.id!.uuidString)"
+            url: "\(baseURL)/api/v1/files/\(fileModel.id!.uuidString)"
         )
     }
     
     @Sendable
     func getAllFiles(req: Request) async throws -> [FileDTO] {
-        try await FileModel.query(on: req.db).all().map { $0.toDTO() }
+        let baseURL = getBaseURL()
+        return try await FileModel.query(on: req.db).all().map { file in
+            var dto = file.toDTO()
+            dto.url = "\(baseURL)/api/v1/files/\(file.id?.uuidString ?? "")"
+            return dto
+        }
     }
     
     @Sendable
