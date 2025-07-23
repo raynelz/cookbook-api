@@ -1,7 +1,7 @@
 import Vapor
 
 struct SecurityHeadersMiddleware: AsyncMiddleware {
-    func respond(to request: Request, chainingTo next: AsyncResponder) async throws -> Response {
+	func respond(to request: Request, chainingTo next: any AsyncResponder) async throws -> Response {
         let response = try await next.respond(to: request)
         
         // Security headers

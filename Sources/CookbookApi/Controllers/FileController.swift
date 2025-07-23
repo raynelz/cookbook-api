@@ -88,7 +88,7 @@ struct FileController: RouteCollection {
         // Создаем модель файла
         let fileModel = FileModel(
             filename: filename,
-            originalName: file.filename ?? "unknown",
+			originalName: file.filename,
             mimeType: mimeType,
             size: fileData.count,
             data: fileData
