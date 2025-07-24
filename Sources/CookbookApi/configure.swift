@@ -9,6 +9,8 @@ public func configure(_ app: Application) async throws {
 
 	let allowedOrigins = Environment.get("CORS_ALLOWED_ORIGINS")?.split(separator: ",").map(String.init) ?? ["*"]
 
+	// MARK: - CORS Settings
+
 	let corsConfiguration = CORSMiddleware.Configuration(
 		allowedOrigin: .any(allowedOrigins),
 		allowedMethods: [.GET, .POST, .PATCH, .DELETE, .OPTIONS],
