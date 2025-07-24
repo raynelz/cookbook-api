@@ -27,6 +27,8 @@ public func configure(_ app: Application) async throws {
 
 	app.middleware.use(CORSMiddleware(configuration: corsConfiguration))
 
+	// MARK: - Max File Size Limit
+
 	let maxFileSize = Environment.get("MAX_FILE_SIZE").flatMap(Int.init) ?? 52428800 // 50MB
 	app.routes.defaultMaxBodySize = ByteCount(integerLiteral: maxFileSize)
 
