@@ -5,10 +5,6 @@ import Vapor
 
 public func configure(_ app: Application) async throws {
 
-	// MARK: - Environment Settings
-
-	let allowedOrigins = Environment.get("CORS_ALLOWED_ORIGINS")?.split(separator: ",").map(String.init) ?? ["*"]
-
 	// MARK: - Max File Size Limit
 
 	let maxFileSize = Environment.get("MAX_FILE_SIZE").flatMap(Int.init) ?? 52428800 // 50MB
@@ -35,6 +31,7 @@ public func configure(_ app: Application) async throws {
 
 	app.migrations.add(CreateRecipe())
 	app.migrations.add(CreateFile())
+	app.migrations.add(RemoveCoverFromRecipe())
 
 	try await app.autoMigrate()
 

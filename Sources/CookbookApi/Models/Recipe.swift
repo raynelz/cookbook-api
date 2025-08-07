@@ -8,9 +8,6 @@ final class Recipe: Model, @unchecked Sendable {
 	@ID(key: .id)
 	var id: UUID?
 
-	@Field(key: "cover")
-	var cover: String
-
 	@Field(key: "title")
 	var title: String
 
@@ -30,7 +27,6 @@ final class Recipe: Model, @unchecked Sendable {
 
 	init(
 		id: UUID? = nil,
-		cover: String,
 		title: String,
 		estimateTime: TimeInterval,
 		calories: Double,
@@ -38,7 +34,6 @@ final class Recipe: Model, @unchecked Sendable {
 		steps: String
 	) {
 		self.id = id
-		self.cover = cover
 		self.title = title
 		self.estimateTime = estimateTime
 		self.calories = calories
@@ -49,7 +44,6 @@ final class Recipe: Model, @unchecked Sendable {
 	func toDTO() -> RecipeDTO {
 		.init(
 			id: self.id,
-			cover: self.cover,
 			title: self.title,
 			estimateTime: self.estimateTime,
 			calories: self.calories,

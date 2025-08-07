@@ -31,8 +31,7 @@ struct RecipeController: RouteCollection {
 		let recipeDTO = try req.content.decode(RecipeDTO.self)
 		
 		// Проверяем что все обязательные поля переданы
-		guard recipeDTO.cover != nil,
-			  recipeDTO.title != nil,
+		guard recipeDTO.title != nil,
 			  recipeDTO.estimateTime != nil,
 			  recipeDTO.calories != nil,
 			  recipeDTO.ingredients != nil,
@@ -62,9 +61,7 @@ struct RecipeController: RouteCollection {
 		let updateData = try req.content.decode(RecipeDTO.self)
 
 		// Обновляем только переданные поля
-		if let cover = updateData.cover {
-			recipe.cover = cover
-		}
+
 		if let title = updateData.title {
 			recipe.title = title
 		}
