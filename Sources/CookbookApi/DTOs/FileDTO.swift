@@ -11,13 +11,3 @@ struct FileDTO: Content {
 	var url: String?
 
 }
-
-struct FileUploadResponse: Content {
-
-	let id: UUID
-	let filename: String
-	let originalName: String
-	let size: Int
-	let url: String
-
-}

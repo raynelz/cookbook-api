@@ -31,7 +31,12 @@ public func configure(_ app: Application) async throws {
 
 	app.migrations.add(CreateRecipe())
 	app.migrations.add(CreateFile())
-	app.migrations.add(RemoveCoverFromRecipe())
+	app.migrations.add(AddVKUserIdToRecipe())
+	app.migrations.add(CreateFavoriteRecipe())
+	app.migrations.add(CreateCategory())
+	app.migrations.add(AddCategoryToRecipe())
+	app.migrations.add(UpdateFileStorage())
+	app.migrations.add(AddCoverToRecipe())
 
 	try await app.autoMigrate()
 

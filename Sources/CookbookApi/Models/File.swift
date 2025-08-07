@@ -20,8 +20,8 @@ final class FileModel: Model, @unchecked Sendable {
 	@Field(key: "size")
 	var size: Int
 
-	@Field(key: "data")
-	var data: Data
+	@Field(key: "file_path")
+	var filePath: String
 
 	@Timestamp(key: "created_at", on: .create)
 	var createdAt: Date?
@@ -34,14 +34,14 @@ final class FileModel: Model, @unchecked Sendable {
 		originalName: String,
 		mimeType: String,
 		size: Int,
-		data: Data
+		filePath: String
 	) {
 		self.id = id
 		self.filename = filename
 		self.originalName = originalName
 		self.mimeType = mimeType
 		self.size = size
-		self.data = data
+		self.filePath = filePath
 	}
 
 	func toDTO() -> FileDTO {

@@ -28,16 +28,20 @@ struct FileController: RouteCollection {
 			throw Abort(.notFound, reason: "File not found")
 		}
 
-		// Проверяем разрешенные типы файлов
-		let allowedTypes = Environment.get("ALLOWED_FILE_TYPES")?.split(separator: ",").map(String.init) ?? ["image/jpeg", "image/png", "image/gif", "image/webp"]
-
-		guard allowedTypes.contains(file.mimeType) else {
-			throw Abort(.forbidden, reason: "File type not allowed")
+		// Проверяем существование файла на диске
+		let fileService = FileService()
+		let fileInfo = fileService.getFileInfo(filePath: file.filePath)
+		
+		guard fileInfo.exists else {
+			throw Abort(.notFound, reason: "File not found on disk")
 		}
+
+		// Читаем файл с диска
+		let fileData = try fileService.getFileData(filePath: file.filePath)
 
 		// Создаем Response с данными файла
 		let response = Response()
-		response.body = .init(data: file.data)
+		response.body = .init(data: fileData)
 
 		// Устанавливаем правильный Content-Type
 		let mimeTypeParts = file.mimeType.split(separator: "/")
@@ -50,6 +54,11 @@ struct FileController: RouteCollection {
 		}
 
 		response.headers.add(name: .contentDisposition, value: "inline; filename=\"\(file.originalName)\"")
+		
+		// Добавляем кэширование для изображений
+		if file.mimeType.hasPrefix("image/") {
+			response.headers.add(name: .cacheControl, value: "public, max-age=86400") // 24 часа
+		}
 
 		return response
 	}
@@ -62,36 +71,20 @@ struct FileController: RouteCollection {
 			throw Abort(.badRequest, reason: "No file field found in request")
 		}
 
-		// Валидируем размер файла
-		let maxFileSize = Environment.get("MAX_FILE_SIZE").flatMap(Int.init) ?? 52428800 // 50MB
-		guard file.data.readableBytes <= maxFileSize else {
-			let maxSizeMB = maxFileSize / 1024 / 1024
-			throw Abort(.payloadTooLarge, reason: "File too large. Maximum size is \(maxSizeMB)MB")
-		}
+		// Сохраняем файл на диск через FileService
+		let fileService = FileService()
+		let (filename, filePath) = try fileService.saveFile(file)
 
 		// Определяем MIME тип
 		let mimeType = file.contentType?.description ?? "application/octet-stream"
-
-		// Проверяем разрешенные типы файлов
-		let allowedTypes = Environment.get("ALLOWED_FILE_TYPES")?.split(separator: ",").map(String.init) ?? ["image/jpeg", "image/png", "image/gif", "image/webp"]
-		guard allowedTypes.contains(mimeType) else {
-			throw Abort(.badRequest, reason: "File type not allowed. Allowed types: \(allowedTypes.joined(separator: ", "))")
-		}
-
-		// Генерируем уникальное имя файла
-		let fileExtension = file.extension ?? "jpg"
-		let filename = "\(UUID().uuidString).\(fileExtension)"
-
-		// Получаем данные файла
-		let fileData = Data(buffer: file.data)
 
 		// Создаем модель файла
 		let fileModel = FileModel(
 			filename: filename,
 			originalName: file.filename,
 			mimeType: mimeType,
-			size: fileData.count,
-			data: fileData
+			size: file.data.readableBytes,
+			filePath: filePath
 		)
 
 		// Сохраняем в базу данных
@@ -127,6 +120,11 @@ struct FileController: RouteCollection {
 			throw Abort(.notFound, reason: "File not found")
 		}
 
+		// Удаляем файл с диска
+		let fileService = FileService()
+		try fileService.deleteFile(filePath: file.filePath)
+
+		// Удаляем запись из базы данных
 		try await file.delete(on: req.db)
 		return .noContent
 	}

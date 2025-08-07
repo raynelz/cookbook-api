@@ -7,5 +7,8 @@ func routes(_ app: Application) throws {
 
 	try api.register(collection: RecipeController())
 	try api.register(collection: FileController())
+	try api.register(collection: FavoriteRecipeController())
+	try api.register(collection: CategoryController())
+	try api.register(collection: UserStatsController())
 
 }
