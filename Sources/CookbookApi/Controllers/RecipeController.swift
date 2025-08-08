@@ -13,49 +13,44 @@ struct RecipeController: RouteCollection {
 			recipe.patch(use: update)
 			recipe.delete(use: delete)
 		}
-		
-		// Новые эндпоинты для работы с пользователями
+
 		recipes.get("user", ":vkUserId", use: getUserRecipes)
 	}
 
+	// Фильтры (query параметры)
 	func index(req: Request) async throws -> [RecipeDTO] {
 		var query = Recipe.query(on: req.db)
-		
+
 		// Проверяем есть ли параметр поиска
 		if let searchTitle = req.query[String.self, at: "searchByTitle"] {
-			// Используем ILIKE для поиска без учета регистра
 			query = query.filter(\.$title ~~ searchTitle)
 		}
-		
+
 		// Фильтрация по пользователю
 		if let vkUserId = req.query[Int64.self, at: "vkUserId"] {
 			query = query.filter(\.$vkUserId == vkUserId)
 		}
-		
+
 		// Фильтрация по категории
 		if let categoryId = req.query[UUID.self, at: "categoryId"] {
 			query = query.filter(\.$category.$id == categoryId)
 		}
-		
+
 		// Фильтрация по времени приготовления
-		if let maxTime = req.query[TimeInterval.self, at: "maxTime"] {
-			query = query.filter(\.$estimateTime <= maxTime)
+		if let estimateTime = req.query[TimeInterval.self, at: "estimateTime"] {
+			query = query.filter(\.$estimateTime == estimateTime)
 		}
-		
-		if let minTime = req.query[TimeInterval.self, at: "minTime"] {
-			query = query.filter(\.$estimateTime >= minTime)
-		}
-		
+
 		// Сортировка по дате создания (новые сначала)
 		query = query.sort(\.$createdAt, .descending)
 		
 		return try await query.all().map { $0.toDTO() }
 	}
 
+	// Создаём рецепт
 	func create(req: Request) async throws -> RecipeDTO {
 		let recipeDTO = try req.content.decode(RecipeDTO.self)
-		
-		// Проверяем что все обязательные поля переданы
+
 		guard recipeDTO.vkUserId != nil,
 			  recipeDTO.title != nil,
 			  recipeDTO.estimateTime != nil,
@@ -65,17 +60,17 @@ struct RecipeController: RouteCollection {
 			  recipeDTO.categoryId != nil else {
 			throw Abort(.badRequest, reason: "Missing required fields")
 		}
-		
-		// Проверяем что категория существует
+
 		guard let _ = try await Category.find(recipeDTO.categoryId, on: req.db) else {
 			throw Abort(.badRequest, reason: "Category not found")
 		}
-		
+
 		let recipe = recipeDTO.toModel()
 		try await recipe.save(on: req.db)
 		return recipe.toDTO()
 	}
 
+	// Получаем рецепт по id
 	func show(req: Request) async throws -> RecipeDTO {
 
 		guard let recipe = try await Recipe.find(req.parameters.get("recipeID"), on: req.db) else {
@@ -85,6 +80,7 @@ struct RecipeController: RouteCollection {
 		return recipe.toDTO()
 	}
 
+	// Обновляем рецепт по id
 	func update(req: Request) async throws -> RecipeDTO {
 		guard let recipe = try await Recipe.find(req.parameters.get("recipeID"), on: req.db) else {
 			throw Abort(.notFound)
@@ -92,7 +88,6 @@ struct RecipeController: RouteCollection {
 
 		let updateData = try req.content.decode(RecipeDTO.self)
 
-		// Обновляем только переданные поля
 		if let title = updateData.title {
 			recipe.title = title
 		}
@@ -123,6 +118,7 @@ struct RecipeController: RouteCollection {
 		return recipe.toDTO()
 	}
 
+	// Удаление рецепта по id
 	func delete(req: Request) async throws -> HTTPStatus {
 		guard let recipe = try await Recipe.find(req.parameters.get("recipeID"), on: req.db) else {
 			throw Abort(.notFound)
@@ -132,7 +128,7 @@ struct RecipeController: RouteCollection {
 		return .noContent
 	}
 	
-	// Новый метод для получения рецептов конкретного пользователя
+	// Получение рецептов конкретного пользователя
 	func getUserRecipes(req: Request) async throws -> [RecipeDTO] {
 		guard let vkUserId = req.parameters.get("vkUserId", as: Int64.self) else {
 			throw Abort(.badRequest, reason: "Invalid vkUserId parameter")
