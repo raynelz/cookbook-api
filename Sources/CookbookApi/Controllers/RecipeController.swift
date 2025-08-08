@@ -65,6 +65,13 @@ struct RecipeController: RouteCollection {
 			throw Abort(.badRequest, reason: "Category not found")
 		}
 
+		// Если передан cover, проверяем что файл существует
+		if let coverUUID = recipeDTO.cover {
+			guard let _ = try await FileModel.find(coverUUID, on: req.db) else {
+				throw Abort(.badRequest, reason: "Cover file not found")
+			}
+		}
+
 		let recipe = recipeDTO.toModel()
 		try await recipe.save(on: req.db)
 		return recipe.toDTO()
@@ -91,8 +98,12 @@ struct RecipeController: RouteCollection {
 		if let title = updateData.title {
 			recipe.title = title
 		}
-		if let cover = updateData.cover {
-			recipe.cover = cover
+		if let coverUUID = updateData.cover {
+			// Проверяем существование файла и сохраняем как строку UUID
+			guard let _ = try await FileModel.find(coverUUID, on: req.db) else {
+				throw Abort(.badRequest, reason: "Cover file not found")
+			}
+			recipe.cover = coverUUID.uuidString
 		}
 		if let estimateTime = updateData.estimateTime {
 			recipe.estimateTime = estimateTime

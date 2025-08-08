@@ -6,7 +6,7 @@ struct RecipeDTO: Content {
 	var id: UUID?
 	var vkUserId: Int64?
 	var title: String?
-	var cover: String?
+	var cover: UUID?
 	var estimateTime: TimeInterval?
 	var calories: Double?
 	var ingredients: String?
@@ -32,7 +32,7 @@ struct RecipeDTO: Content {
 		
 		model.vkUserId = vkUserId
 		model.title = title
-		model.cover = self.cover
+		model.cover = self.cover?.uuidString
 		model.estimateTime = estimateTime
 		model.calories = calories
 		model.ingredients = ingredients

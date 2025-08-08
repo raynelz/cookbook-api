@@ -67,7 +67,7 @@ final class Recipe: Model, @unchecked Sendable {
 			id: self.id,
 			vkUserId: self.vkUserId,
 			title: self.title,
-			cover: self.cover,
+			cover: self.cover.flatMap(UUID.init(uuidString:)),
 			estimateTime: self.estimateTime,
 			calories: self.calories,
 			ingredients: self.ingredients,
