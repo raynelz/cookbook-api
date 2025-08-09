@@ -95,6 +95,10 @@ struct RecipeController: RouteCollection {
 
 		let updateData = try req.content.decode(RecipeDTO.self)
 
+		if let vkUserId = updateData.vkUserId {
+			recipe.vkUserId = vkUserId
+		}
+
 		if let title = updateData.title {
 			recipe.title = title
 		}
