@@ -49,6 +49,19 @@ public func configure(_ app: Application) async throws {
 		app.logger.logLevel = Logger.Level(rawValue: Environment.get("LOG_LEVEL") ?? "notice") ?? .notice
 	}
 
+	// MARK: - Middlewares
+
+	// Allow CORS from any origin
+	let corsConfiguration = CORSMiddleware.Configuration(
+		allowedOrigin: .all,
+		allowedMethods: [.GET, .POST, .PUT, .PATCH, .DELETE, .OPTIONS],
+		allowedHeaders: [.accept, .authorization, .contentType, .origin, .xRequestedWith, .userAgent]
+	)
+	app.middleware.use(CORSMiddleware(configuration: corsConfiguration))
+
+	// Security headers
+	app.middleware.use(SecurityHeadersMiddleware())
+
 	// MARK: - Routes Registration
 
 	try routes(app)
